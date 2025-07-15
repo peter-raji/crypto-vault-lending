@@ -266,3 +266,74 @@
     )
   )
 )
+
+;; PROTOCOL GOVERNANCE & ADMINISTRATION
+
+;; Update minimum collateral requirements
+(define-public (update-collateral-ratio (new-ratio uint))
+  (begin
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    (asserts! (>= new-ratio u110) ERR-INVALID-AMOUNT)
+    (var-set minimum-collateral-ratio new-ratio)
+    (ok true)
+  )
+)
+
+;; Adjust liquidation trigger threshold
+(define-public (update-liquidation-threshold (new-threshold uint))
+  (begin
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    (asserts! (>= new-threshold u110) ERR-INVALID-AMOUNT)
+    (var-set liquidation-threshold new-threshold)
+    (ok true)
+  )
+)
+
+;; Update asset pricing oracle feeds
+(define-public (update-price-feed
+    (asset (string-ascii 3))
+    (new-price uint)
+  )
+  (begin
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    ;; Comprehensive input validation
+    (asserts! (is-valid-asset asset) ERR-INVALID-ASSET)
+    (asserts! (is-valid-price new-price) ERR-INVALID-PRICE)
+    ;; Update pricing data
+    (ok (map-set collateral-prices { asset: asset } { price: new-price }))
+  )
+)
+
+;; DATA RETRIEVAL & ANALYTICS
+
+;; Retrieve comprehensive loan information
+(define-read-only (get-loan-details (loan-id uint))
+  (map-get? loans { loan-id: loan-id })
+)
+
+;; Get user's complete loan portfolio
+(define-read-only (get-user-loans (user principal))
+  (map-get? user-loans { user: user })
+)
+
+;; Platform-wide statistics and metrics
+(define-read-only (get-platform-stats)
+  {
+    total-btc-locked: (var-get total-btc-locked),
+    total-loans-issued: (var-get total-loans-issued),
+    minimum-collateral-ratio: (var-get minimum-collateral-ratio),
+    liquidation-threshold: (var-get liquidation-threshold),
+  }
+)
+
+;; Retrieve list of supported collateral assets
+(define-read-only (get-valid-assets)
+  VALID-ASSETS
+)
+
+;; UTILITY FUNCTIONS
+
+;; Filter helper for loan list management
+(define-private (not-equal-loan-id (id uint))
+  (not (is-eq id id))
+)
